@@ -27,6 +27,15 @@
 #include <sys/types.h>
 #include <sys/time.h> /* In lieu of Solaris <sys/synch.h> */
 
+#ifndef __unused
+#define __unused __attribute__((unused))
+#endif
+
+#ifndef __printflike
+#define __printflike(format_index, first_arg) \
+	__attribute__((format(printf, format_index, first_arg)))
+#endif
+
 #undef NULL
 #define NULL (0) /* quiets many warnings */
 

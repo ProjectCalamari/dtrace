@@ -84,6 +84,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <errno.h>
 #include <libelf.h>
 #include <libdwarf.h>
@@ -1936,7 +1937,7 @@ static const die_creator_t die_creators[] = {
 	{ DW_TAG_restrict_type,		0,		die_restrict_create },
 	{ DW_TAG_APPLE_ptrauth_type,	0,		die_ptrauth_create },
 	{ DW_TAG_atomic_type,	0,			die_typedef_create},
-	{ 0, NULL }
+	{ 0, 0, NULL }
 };
 
 static const die_creator_t *

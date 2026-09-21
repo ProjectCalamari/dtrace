@@ -27,15 +27,18 @@
 #ifndef _BARRIER_H
 #define	_BARRIER_H
 
-#include <dispatch/dispatch.h>
 #include <pthread.h>
 
 typedef struct barrier {
+#if defined(DTRACE_PORTABLE_HOST)
+	pthread_barrier_t bar_barrier;
+#else
 	pthread_mutex_t bar_lock;	/* protects bar_numin */
 	int bar_numin;			/* current number of waiters */
 
 	dispatch_semaphore_t *bar_sem;	/* where everyone waits */
 	int bar_nthr;			/* # of waiters to trigger release */
+#endif
 } barrier_t;
 
 extern void barrier_init(barrier_t *, int);

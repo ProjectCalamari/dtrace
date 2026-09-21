@@ -42,16 +42,24 @@
 void
 barrier_init(barrier_t *bar, int nthreads)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+	pthread_barrier_init(&bar->bar_barrier, NULL, nthreads);
+#else
 	pthread_mutex_init(&bar->bar_lock, NULL);
 	bar->bar_sem = dispatch_semaphore_create(0);
 
 	bar->bar_numin = 0;
 	bar->bar_nthr = nthreads;
+#endif
 }
 
 int
 barrier_wait(barrier_t *bar)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+	int error = pthread_barrier_wait(&bar->bar_barrier);
+	return error == PTHREAD_BARRIER_SERIAL_THREAD;
+#else
 	pthread_mutex_lock(&bar->bar_lock);
 
 	if (++bar->bar_numin < bar->bar_nthr) {
@@ -71,4 +79,5 @@ barrier_wait(barrier_t *bar)
 
 		return (1);
 	}
+#endif
 }

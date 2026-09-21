@@ -61,7 +61,7 @@ array_alloc_size(int n)
 	if (n < 16) {
 		return 16;
 	}
-	int inc = 1 << (fls(n) - 2);
+	int inc = 1 << ((int)(sizeof(unsigned) * 8 - __builtin_clz((unsigned)n)) - 2);
 	int size = inc;
 	while (size < n) size += inc;
 	return size;
@@ -177,7 +177,11 @@ array_filter(array_t *a, int (*cb)(void *, void *), void *priv)
 }
 
 static int
+#if defined(DTRACE_PORTABLE_HOST)
+array_cmp(const void *e1, const void *e2, void *priv)
+#else
 array_cmp(void *priv, const void *e1, const void *e2)
+#endif
 {
 	int (*fun)(void *, void *) = priv;
 	return fun(*(void **)e1, *(void **)e2);
@@ -189,6 +193,10 @@ array_sort(array_t *a, int (*cmp)(void *, void *))
 	int count = array_count(a);
 	if (count && !a->a_sorted) {
 		a->a_sorted = true;
+#if defined(DTRACE_PORTABLE_HOST)
+		qsort_r(a->a_array, count, sizeof(void *), array_cmp, cmp);
+#else
 		qsort_r(a->a_array, count, sizeof(void *), cmp, array_cmp);
+#endif
 	}
 }

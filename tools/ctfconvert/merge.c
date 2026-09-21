@@ -1780,9 +1780,15 @@ start_threads(workqueue_t *wq)
 		    (void *(*)(void *))worker_thread, wq);
 	}
 
+#if defined(DTRACE_PORTABLE_HOST)
+	signal(SIGINT, handle_sig);
+	signal(SIGQUIT, handle_sig);
+	signal(SIGTERM, handle_sig);
+#else
 	sigset(SIGINT, handle_sig);
 	sigset(SIGQUIT, handle_sig);
 	sigset(SIGTERM, handle_sig);
+#endif
 	pthread_sigmask(SIG_UNBLOCK, &sets, NULL);
 }
 

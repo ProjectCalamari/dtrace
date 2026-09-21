@@ -42,7 +42,11 @@
 #include "memory.h"
 
 #if defined(__APPLE__)
+#if defined(DTRACE_PORTABLE_HOST)
+#include <architecture/byte_order.h>
+#else
 #include <libkern/OSByteOrder.h>
+#endif
 #define SWAP16(v)		v = OSSwapInt16(v)
 #define SWAP32(v)		v = OSSwapInt32(v)
 #define SWAP64(v)		v = OSSwapInt64(v)
@@ -1240,7 +1244,7 @@ decompress_ctf(caddr_t cbuf, size_t cbufsz, caddr_t dbuf, size_t dbufsz)
 	    (rc = inflate(&zstr, Z_NO_FLUSH)) != Z_STREAM_END ||
 	    (rc = inflateEnd(&zstr)) != Z_OK) {
 		warning("CTF decompress zlib error %s\n", zError(rc));
-		return (NULL);
+		return (0);
 	}
 
 	debug(3, "reflated %lu bytes to %lu, pointer at %d\n",

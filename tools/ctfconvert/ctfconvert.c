@@ -162,12 +162,21 @@ main(int argc, char **argv)
 	int verbose = 0;
 	int ignore_non_c = 0;
 	int keep_stabs = 0;
-    int compress = 0;
+	int compress = 0;
 	int c;
 
+#if defined(DTRACE_PORTABLE_HOST)
+	sigset_t blocked_signals;
+	sigemptyset(&blocked_signals);
+	sigaddset(&blocked_signals, SIGINT);
+	sigaddset(&blocked_signals, SIGQUIT);
+	sigaddset(&blocked_signals, SIGTERM);
+	sigprocmask(SIG_BLOCK, &blocked_signals, NULL);
+#else
 	sighold(SIGINT);
 	sighold(SIGQUIT);
 	sighold(SIGTERM);
+#endif
 
 	progname = basename(argv[0]);
 
@@ -236,9 +245,16 @@ main(int argc, char **argv)
 	 */
 	set_terminate_cleanup(terminate_cleanup);
 
+#if defined(DTRACE_PORTABLE_HOST)
+	signal(SIGINT, handle_sig);
+	signal(SIGQUIT, handle_sig);
+	signal(SIGTERM, handle_sig);
+	sigprocmask(SIG_UNBLOCK, &blocked_signals, NULL);
+#else
 	sigset(SIGINT, handle_sig);
 	sigset(SIGQUIT, handle_sig);
 	sigset(SIGTERM, handle_sig);
+#endif
 
 	if (!file_read(infile, unitmatch, verbose, ignore_non_c, &mstrtd))
 		terminate("%s doesn't have type data to convert\n", infile);

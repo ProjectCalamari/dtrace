@@ -22,17 +22,28 @@
 
 #include "darwin_shim.h"
 
+#if defined(DTRACE_PORTABLE_HOST)
+#include <time.h>
+#include <sys/utsname.h>
+#else
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
+#endif
 #include <sys/time.h>
 #include <sys/errno.h>
 #include <unistd.h>
 #include <fnmatch.h>
+#include <string.h>
 
 hrtime_t
 gethrtime(void)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+	struct timespec now;
+	(void)clock_gettime(CLOCK_MONOTONIC, &now);
+	return (hrtime_t)now.tv_sec * NANOSEC + now.tv_nsec;
+#else
 	uint64_t elapsed;
 	static uint64_t start;
 	static mach_timebase_info_data_t sTimebaseInfo = { 0, 0 };
@@ -77,6 +88,7 @@ gethrtime(void)
 
 		return (q32 << 32) + ((r32 << 32) + lambda64)/denom;
 	}
+#endif
 }
 
 int 
@@ -89,6 +101,27 @@ gmatch(const char *s, const char *p)
 long 
 sysinfo(int command, char *buf, long count)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+	struct utsname uts;
+	const char *value;
+	size_t length;
+
+	if (uname(&uts) != 0)
+		return -1;
+	if (command == SI_RELEASE)
+		value = uts.release;
+	else if (command == SI_SYSNAME)
+		value = uts.sysname;
+	else
+		return -1;
+	length = strlen(value) + 1;
+	if (count > 0) {
+		size_t copy = length < (size_t)count ? length : (size_t)count;
+		memcpy(buf, value, copy);
+		buf[copy - 1] = '\0';
+	}
+	return (long)length;
+#else
 	switch (command)
 	{
 	int mib[2];
@@ -112,6 +145,7 @@ sysinfo(int command, char *buf, long count)
 	
 	/* NOTREACHED */
 	return 0;
+#endif
 }
 
 // The following are used only for "assert()"
@@ -148,10 +182,14 @@ p_online(processorid_t processorid, int flag)
 	static int ncpu = -1;
 	
 	if (ncpu == -1) {
+#if defined(DTRACE_PORTABLE_HOST)
+		ncpu = (int)sysconf(_SC_NPROCESSORS_CONF);
+#else
 		size_t len = sizeof(ncpu);
 		int mib[2] = { CTL_HW, HW_NCPU };
 		
 		(void)sysctl(mib, 2, (void *)&ncpu, &len, NULL, 0);
+#endif
 	}
 
 	switch(flag) {

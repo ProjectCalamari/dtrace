@@ -32,6 +32,7 @@
 #include <ar.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <string.h>
 #include <errno.h>
 #include <libelf.h>
 #include <sys/mman.h>
@@ -40,21 +41,48 @@
 
 static const char	armag[] = ARMAG;
 
+#include <mach-o/loader.h>
+#include <mach-o/fat.h>
+#if !defined(DTRACE_PORTABLE_HOST)
 #include <crt_externs.h>
 #include <mach/mach.h>
-#include <mach-o/loader.h>
 #include <mach-o/dyld.h>
-#include <mach-o/fat.h>
 #include <sys/sysctl.h>
+#endif
+
+#ifndef OSSwapBigToHostInt32
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define OSSwapBigToHostInt32(value) __builtin_bswap32(value)
+#else
+#define OSSwapBigToHostInt32(value) (value)
+#endif
+#endif
 
 static cpu_type_t current_program_arch(void)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+#if defined(__aarch64__)
+        return (cpu_type_t)(12 | CPU_ARCH_ABI64);
+#elif defined(__arm__)
+        return (cpu_type_t)12;
+#elif defined(__x86_64__)
+        return (cpu_type_t)(7 | CPU_ARCH_ABI64);
+#elif defined(__i386__)
+        return (cpu_type_t)7;
+#else
+#error unsupported host architecture
+#endif
+#else
         cpu_type_t current_arch = (_NSGetMachExecuteHeader())->cputype;
         return current_arch;
+#endif
 }
 
 static cpu_type_t current_kernel_arch(void)
 {
+#if defined(DTRACE_PORTABLE_HOST)
+        return current_program_arch();
+#else
         struct host_basic_info  hi;
         unsigned int            size;
         kern_return_t           kret;
@@ -83,6 +111,7 @@ static cpu_type_t current_kernel_arch(void)
                 current_arch |= CPU_ARCH_ABI64;
         }
         return current_arch;
+#endif
 }
 
 static Elf *
