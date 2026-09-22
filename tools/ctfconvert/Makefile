@@ -18,6 +18,9 @@ CPPFLAGS += \
 	-I$(ROOT)/lib/libctf/common \
 	-I$(ROOT)/tools/ctfconvert \
 	-idirafter $(XNU_SOURCE)/EXTERNAL_HEADERS \
+	-idirafter $(XNU_SOURCE)/bsd \
+	-idirafter $(XNU_SOURCE)/osfmk \
+	-idirafter $(XNU_SOURCE)/libkern \
 	$(ZLIB_CFLAGS)
 CFLAGS ?= -O2 -g
 CFLAGS += -std=gnu11 -pthread
